@@ -32,8 +32,8 @@ function randomName(){
 }
 
 function getAgg(iotName){
-	var mtg = "14159908751";  // $("#mtgid").val();
-	var ac  = "8751";         // $("#access").val();
+	var mtg = $("#mtgid").val();
+	var ac  = $("#passcode").val();
 
 	var opts ={
 			'numeric_id': "",
@@ -169,8 +169,8 @@ function update() {
 function connectToRoster(){
   getAgg().then(
 	(opts)=>{
-	   status("Opts: \n" + jss(opts));
 	   opts.user.full_name = "Roster";
+	   status("Opts: \n" + jss(opts));
 	   opts.events = ['meeting','endpoint','chat','private_chat'];
 	   roster = new Roster(opts,cbRoster,cbChat,cbPrivateChat);
 	   eventService = new BrowserEvents( opts, onMessage );
