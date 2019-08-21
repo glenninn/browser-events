@@ -1,0 +1,236 @@
+<html>
+<head>
+	<title>Roster in Browser</title>
+	
+	<script src='jquery.min.js'></script>
+	<script src='my.class.min.js'></script>
+	<script src='browserevents.js'></script>
+	<script src='roster.js'></script>
+	
+<!-- Aug 2019
+	 This code is provided as reference for connecting to the BlueJeans
+     Meeting Roster.   No guarantee is made to the accuracy.  Use at your
+	 own risk
+ -->
+	
+<script type="text/javascript">
+
+var roster = null;
+var eventService = null;
+
+var apiHost = "api.bluejeans.com";
+var aggUrl = "/v1/services/aggregator/meeting?pairing=none&allowGeoLocation=true";
+var arec = {
+   attributes: [],
+   meetingNumericId : "",
+   meetingPasscode : ""
+};
+
+function randomName(){
+	var d= Date.now();
+	return "dev" + (d % 10000);
+}
+
+function getAgg(iotName){
+	var mtg = "14159908751";  // $("#mtgid").val();
+	var ac  = "8751";         // $("#access").val();
+
+	var opts ={
+			'numeric_id': "",
+			'access_token': "",
+			'user' : {
+				'full_name': "",
+				'is_leader': true
+			},
+			'leader_id': 0,
+			'protocol': '2',
+			'endpointType': 'commandCenter',
+			'eventServiceUrl': ""
+	};
+	
+	
+	var p = new Promise( (resolve,reject)=>{
+
+		arec.meetingNumericId = mtg;
+		arec.meetingPasscode = ac;
+
+		 $.ajax( {
+		  url: "https://" + apiHost + aggUrl,
+		  method: 'POST',
+		  data: JSON.stringify(arec),
+		  contentType: 'application/json'
+		  }).done( (data) => {
+			opts.numeric_id   = mtg;
+			opts.access_token = data.oauthInfo.access_token;
+			opts.user =  {
+					full_name : iotName ? iotName : randomName(),
+
+					is_leader : true
+				};
+			opts.leader_id = data.meetingInfo.leaderInfo.id;
+			opts.eventServiceUrl = data.meetingInfo.eventServiceURL;
+			resolve( opts );
+
+		  }).fail( (error) => {
+			  reject(error);
+		  });
+	});
+	
+	return p;
+}
+
+
+function jss(obj) {
+	return JSON.stringify(obj,null,2);
+}
+
+function status(msg) {
+	var m = $("#status").val();
+	m = msg + "\n" + m;
+	$("#status").val(m);
+}
+
+
+var eCount = 0;
+var eChat  = 0;
+var ePrivateChat = 0;
+
+function cbRoster(){
+  eCount++;
+  $("#ecnt").text(eCount);
+}
+
+function cbChat(msg){
+  eChat++;
+  $("#echat").text(eChat);
+}
+
+function cbPrivateChat(msg) {
+  ePrivateChat++;
+  $("#epchat").text(ePrivateChat);
+}
+
+var keys = "";
+var initialized = false;
+
+function makePTable(){
+  var p = roster.roster;
+  var maxh = 0;
+  var pkey = -1
+  if(p.length < 1)
+	return;
+	
+  for(var i=0; i<p.length; i++){
+	keys = Object.keys(p[i]);
+	if(keys.length> maxh) {
+		maxh = keys.length;
+		pkey = i;
+	}
+  }
+	
+  keys = Object.keys(p[pkey]);	
+	
+  var t = "<table id='tbl' border='1'>\n<tr>";
+  for(var f=0; f<keys.length;f++){
+	 if(f==0){
+	   t += "<td>" + "username" + "</td>";
+	 } else if (keys[f] != "n"){
+		  t += "<td>" + keys[f] + "</td>";
+	 }
+  }
+  t += "\n</tr>";
+  
+  for(var pers=0; pers<p.length; pers++){
+	  t += "\n<tr>";
+	  for(var f=0; f<keys.length;f++){
+		 if(f==0){
+		   t += "<td>" + p[pers].n + "</td>";
+		 } else if (keys[f] != "n"){
+			  t += "<td>" + p[pers][keys[f]] + "</td>";
+		 }
+	  }
+	  t += "\n</tr>"
+  }
+  t += "</table>";
+  $("#tbl").remove();
+  $("#participants").append(t);
+  initialized= true;
+}
+
+function onMessage(msg) {
+	roster.onMessage(msg);
+		makePTable();
+}
+
+function update() {
+	makePTable();
+}
+
+function connectToRoster(){
+  getAgg().then(
+	(opts)=>{
+	   status("Opts: \n" + jss(opts));
+	   opts.user.full_name = "Roster";
+	   opts.events = ['meeting','endpoint','chat','private_chat'];
+	   roster = new Roster(opts,cbRoster,cbChat,cbPrivateChat);
+	   eventService = new BrowserEvents( opts, onMessage );
+	   eventService.connect();
+	},
+	(error)=>{
+	   status("Error:\n" + error);
+	});
+}
+
+function onLoad(){
+  $("#status").val("");
+}
+
+</script>
+
+</head>
+<body onload="onLoad()">
+  <div class="container">
+    <h2>Roster Test</h2>
+	<div>
+		<table>
+			<tr>
+				<td>Meeting ID:</td>
+				<td><input id="mtgid" placeholder="Meeting ID"/></td>
+			</tr>
+			<tr>
+				<td>Passcode:</td>
+				<td><input id="passcode" placeholder="Passcode"/></td>
+			</tr>			
+			<tr>
+				<td colspan="2"><button onclick="connectToRoster()">Connect to Meeting</button></td>
+			</tr>
+		</table>
+				
+	<div id="participants">
+	</div>
+	<div>
+		<textarea id="status" rows="10" cols="64"></textarea>
+	</div>
+	<div>
+	<table>
+		<tr>
+			<td>Event Type</td>
+			<td>Event Count</td>
+		</tr>
+		<tr>
+			<td>Roster</td>
+			<td id="ecnt"></td>
+		</tr>
+		<tr>
+			<td>Chat</td>
+			<td id="echat"></td>
+		</tr>
+		<tr>
+			<td>Private Chat</td>
+			<td id="epchat"></td>
+		</tr>
+	</table>
+	</div>
+  </div>
+</body>
+</html>
