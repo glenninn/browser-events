@@ -12,11 +12,9 @@ This set of Javascript application files demonstrates how to connect and to the 
 
 The design consist of 2 Javascript files and both require the npm myclass package.
 
-
 <script src='my.class.min.js'></script>
 <script src='browserevents.js'></script>
 <script src='roster.js'></script>
-
 ## Prerequisites
 
 As this reference application makes BlueJeans API calls from a client browser session, the host which serves the HTML/JS code must be whitelisted by BlueJeans.  
@@ -41,7 +39,7 @@ When the application web page comes up, it will appear approximately as shown:
 
 You must connect to a valid BlueJeans Meeting using the provided controls on the page:  Upon connection, the application will display a JSON object that contains connection settings, and then shortly thereafter begin displaying a table of participants and their corresponding Meeting Roster values.  
 
-For detailed explanation of the **highly-abbreviated** field names, refer to the BlueJeans Developer SDK for Events at [](https://github.com/bluejeans/api-events-meetings)
+For detailed explanation of the **highly-abbreviated** field names, refer to the BlueJeans Developer SDK for Events at [https://github.com/bluejeans/api-events-meetings](https://github.com/bluejeans/api-events-meetings)
 
 
 
